@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Estadística</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2E3440;
+            color: #D8DEE9;
+            text-align: center;
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        canvas {
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Calculadora Estadística</h1>
+    
+    <label>Introduce los datos separados por comas:</label>
+    <input type="text" id="datos" placeholder="Ej: 10, 20, 30, 40">
+    <button onclick="calcularEstadisticas()">Calcular</button>
+
+    <h2>Resultados:</h2>
+    <p><b>Media:</b> <span id="media"></span></p>
+    <p><b>Mediana:</b> <span id="mediana"></span></p>
+    <p><b>Moda:</b> <span id="moda"></span></p>
+    <p><b>Varianza:</b> <span id="varianza"></span></p>
+    <p><b>Desviación Estándar:</b> <span id="desvEst"></span></p>
+    <p><b>Coeficiente de Variación:</b> <span id="coefVar"></span></p>
+    <p><b>Desviación Media:</b> <span id="desvMedia"></span></p>
+    
+    <h2>Distribución Normal</h2>
+    <canvas id="grafica" width="400" height="200"></canvas>
+
+    <script>
+        function calcularEstadisticas() {
+            let datos = document.getElementById("datos").value.split(",").map(Number);
+            if (datos.length === 0 || datos.some(isNaN)) {
+                alert("Introduce números válidos separados por comas.");
+                return;
+            }
+
+            // Media
+            let media = datos.reduce((a, b) => a + b, 0) / datos.length;
+
+            // Mediana
+            let datosOrdenados = datos.slice().sort((a, b) => a - b);
+            let mediana = datosOrdenados.length % 2 === 0
+                ? (datosOrdenados[datosOrdenados.length / 2 - 1] + datosOrdenados[datosOrdenados.length / 2]) / 2
+                : datosOrdenados[Math.floor(datosOrdenados.length / 2)];
+
+            // Moda
+            let frecuencia = {};
+            datos.forEach(num => frecuencia[num] = (frecuencia[num] || 0) + 1);
+            let maxFrecuencia = Math.max(...Object.values(frecuencia));
+            let moda = Object.keys(frecuencia).filter(num => frecuencia[num] === maxFrecuencia);
+
+            
+            let varianza = datos.map(x => (x - media) ** 2).reduce((a, b) => a + b, 0) / datos.length;
+            let desviacionEstandar = Math.sqrt(varianza);
+
+            let coefVar = (desviacionEstandar / media) * 100;
+
+            let desviacionMedia = datos.map(x => Math.abs(x - media)).reduce((a, b) => a + b, 0) / datos.length;
+
+            document.getElementById("media").textContent = media.toFixed(2);
+            document.getElementById("mediana").textContent = mediana.toFixed(2);
+            document.getElementById("moda").textContent = moda.join(", ");
+            document.getElementById("varianza").textContent = varianza.toFixed(2);
+            document.getElementById("desvEst").textContent = desviacionEstandar.toFixed(2);
+            document.getElementById("coefVar").textContent = coefVar.toFixed(2) + "%";
+            document.getElementById("desvMedia").textContent = desviacionMedia.toFixed(2);
+
+            graficarDistribucion(media, desviacionEstandar);
+        }
+
+        function graficarDistribucion(media, desviacionEstandar) {
+            let ctx = document.getElementById('grafica').getContext('2d');
+            if (window.grafico) {
+                window.grafico.destroy();
+            }
+
+            let x = [];
+            let y = [];
+            for (let i = media - 3 * desviacionEstandar; i <= media + 3 * desviacionEstandar; i += 0.1) {
+                x.push(i);
+                y.push((1 / (desviacionEstandar * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * ((i - media) / desviacionEstandar) ** 2));
+            }
+
+            window.grafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: x.map(n => n.toFixed(1)), 
+                    datasets: [{
+                        label: "Distribución Normal",
+                        data: y,
+                        borderColor: "blue",
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: "Valores" }},
+                        y: { title: { display: true, text: "Densidad de probabilidad" }}
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
